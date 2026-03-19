@@ -1,0 +1,41 @@
+﻿.next/types/validator.ts(144,31): error TS2344: Type 'typeof import("C:/Users/ashmi/OneDrive/Desktop/Medicare/src/app/api/donations/[id]/route")' does not satisfy the constraint 'RouteHandlerConfig<"/api/donations/[id]">'.
+  Types of property 'PATCH' are incompatible.
+    Type '(req: NextRequest, { params }: { params: { id: string; }; }) => Promise<NextResponse<{ error: string; }> | NextResponse<Document<unknown, {}, IDonation, {}, DefaultSchemaOptions> & IDonation & Required<...> & { ...; } & { ...; }>>' is not assignable to type '(request: NextRequest, context: { params: Promise<{ id: string; }>; }) => void | Response | Promise<void | Response>'.
+      Types of parameters '__1' and 'context' are incompatible.
+        Type '{ params: Promise<{ id: string; }>; }' is not assignable to type '{ params: { id: string; }; }'.
+          Types of property 'params' are incompatible.
+            Property 'id' is missing in type 'Promise<{ id: string; }>' but required in type '{ id: string; }'.
+src/app/api/donations/[id]/route.ts(26,9): error TS2322: Type 'unknown' is not assignable to type 'ObjectId | undefined'.
+src/app/api/donations/route.ts(34,53): error TS2769: No overload matches this call.
+  Overload 1 of 4, '(filter?: _QueryFilter<{ _id: string; pincode: string; status: NonNullable<"pending" | "accepted" | "collected" | "rejected">; medicineId: ObjectId; donorId: ObjectId; ngoId: ObjectId; requestedAt: Date; completedAt: Date; }> | undefined, projection?: ProjectionType<...> | ... 1 more ... | undefined, options?: (QueryOptions<...> & Abortable) | undefined): Query<...>', gave the following error.
+    Type 'unknown' is not assignable to type 'Condition<ApplyBasicQueryCasting<ObjectId>> | undefined'.
+  Overload 2 of 4, '(filter?: Query<any, any, {}, unknown, "find", Record<string, never>> | undefined, projection?: ProjectionType<IDonation> | null | undefined, options?: (QueryOptions<...> & Abortable) | undefined): Query<...>', gave the following error.
+    Object literal may only specify known properties, and 'donorId' does not exist in type 'Query<any, any, {}, unknown, "find", Record<string, never>>'.
+src/app/api/donations/route.ts(56,41): error TS2769: No overload matches this call.
+  Overload 1 of 4, '(filter?: _QueryFilter<{ _id: string; name: string; createdAt: Date; status: NonNullable<"safe" | "expiring" | "expired">; userId: ObjectId; expiryDate: Date; manufacturingDate: Date; mrp: number; category: string; familyMember: string; isDonated: boolean; }> | undefined, projection?: ProjectionType<...> | ... 1 more ... | undefined, options?: (QueryOptions<...> & Abortable) | ... 1 more ... | undefined): Query<...>', gave the following error.
+    Type 'unknown' is not assignable to type 'Condition<ApplyBasicQueryCasting<ObjectId>> | undefined'.
+  Overload 2 of 4, '(filter?: Query<any, any, {}, unknown, "find", Record<string, never>> | undefined, projection?: ProjectionType<IMedicine> | null | undefined, options?: (QueryOptions<...> & Abortable) | ... 1 more ... | undefined): Query<...>', gave the following error.
+    Object literal may only specify known properties, and '_id' does not exist in type 'Query<any, any, {}, unknown, "find", Record<string, never>>'.
+src/app/api/donations/route.ts(73,13): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Type 'unknown' is not assignable to type 'ObjectId | { readonly _bsontype?: StringQueryTypeCasting | undefined; id?: { [x: number]: number | undefined; readonly BYTES_PER_ELEMENT?: number | undefined; ... 37 more ...; readonly [Symbol.toStringTag]?: "Uint8Array" | undefined; } | { ...; } | undefined; ... 7 more ...; readonly [bsonType]?: StringQueryTypeCast...'.
+      Type 'unknown' is not assignable to type 'StringQueryTypeCasting | undefined'.
+src/app/api/donations/route.ts(74,13): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Type 'unknown' is not assignable to type 'ObjectId | { readonly _bsontype?: StringQueryTypeCasting | undefined; id?: { [x: number]: number | undefined; readonly BYTES_PER_ELEMENT?: number | undefined; ... 37 more ...; readonly [Symbol.toStringTag]?: "Uint8Array" | undefined; } | { ...; } | undefined; ... 7 more ...; readonly [bsonType]?: StringQueryTypeCast...'.
+      Type 'unknown' is not assignable to type 'StringQueryTypeCasting | undefined'.
+src/app/api/donations/route.ts(80,24): error TS2339: Property 'save' does not exist on type 'IMedicine'.
+src/app/api/medicines/route.ts(33,49): error TS2769: No overload matches this call.
+  Overload 1 of 4, '(filter?: _QueryFilter<{ _id: string; name: string; createdAt: Date; status: NonNullable<"safe" | "expiring" | "expired">; userId: ObjectId; expiryDate: Date; manufacturingDate: Date; mrp: number; category: string; familyMember: string; isDonated: boolean; }> | undefined, projection?: ProjectionType<...> | ... 1 more ... | undefined, options?: (QueryOptions<...> & Abortable) | undefined): Query<...>', gave the following error.
+    Type 'unknown' is not assignable to type 'Condition<ApplyBasicQueryCasting<ObjectId>> | undefined'.
+  Overload 2 of 4, '(filter?: Query<any, any, {}, unknown, "find", Record<string, never>> | undefined, projection?: ProjectionType<IMedicine> | null | undefined, options?: (QueryOptions<...> & Abortable) | undefined): Query<...>', gave the following error.
+    Object literal may only specify known properties, and 'userId' does not exist in type 'Query<any, any, {}, unknown, "find", Record<string, never>>'.
+src/app/api/medicines/route.ts(63,13): error TS2769: No overload matches this call.
+  Overload 1 of 4, '(filter?: _QueryFilter<{ _id: string; name: string; createdAt: Date; status: NonNullable<"safe" | "expiring" | "expired">; userId: ObjectId; expiryDate: Date; manufacturingDate: Date; mrp: number; category: string; familyMember: string; isDonated: boolean; }> | undefined, projection?: ProjectionType<...> | ... 1 more ... | undefined, options?: (QueryOptions<...> & Abortable) | ... 1 more ... | undefined): Query<...>', gave the following error.
+    Type 'unknown' is not assignable to type 'Condition<ApplyBasicQueryCasting<ObjectId>> | undefined'.
+  Overload 2 of 4, '(filter?: Query<any, any, {}, unknown, "find", Record<string, never>> | undefined, projection?: ProjectionType<IMedicine> | null | undefined, options?: (QueryOptions<...> & Abortable) | ... 1 more ... | undefined): Query<...>', gave the following error.
+    Object literal may only specify known properties, and 'userId' does not exist in type 'Query<any, any, {}, unknown, "find", Record<string, never>>'.
+src/app/api/medicines/route.ts(86,13): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Type 'unknown' is not assignable to type 'ObjectId | { readonly _bsontype?: StringQueryTypeCasting | undefined; id?: { [x: number]: number | undefined; readonly BYTES_PER_ELEMENT?: number | undefined; ... 37 more ...; readonly [Symbol.toStringTag]?: "Uint8Array" | undefined; } | { ...; } | undefined; ... 7 more ...; readonly [bsonType]?: StringQueryTypeCast...'.
+src/app/inventory/page.tsx(141,38): error TS2304: Cannot find name 'Check'.
