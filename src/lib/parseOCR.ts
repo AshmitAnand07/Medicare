@@ -21,27 +21,28 @@ export interface ParsedMedicineData {
 function parseDate(dateStr: string): string | null {
   if (!dateStr) return null;
 
-  // Try DD/MM/YYYY  (3 numeric groups)
+  // Try DD/MM/YYYY — only when the LAST group is a full 4-digit year.
+  // "10/10/2025" → 2025-10-01
+  // Does NOT match "10/2025" (that's MM/YYYY, handled below).
   const threePartMatch = dateStr.match(
-    /^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2,4})$/
+    /^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{4})$/
   );
   if (threePartMatch) {
-    let day = threePartMatch[1];
     let month = threePartMatch[2];
-    let year = threePartMatch[3];
-    if (year.length === 2) year = "20" + year;
+    const year = threePartMatch[3];
     if (month.length === 1) month = "0" + month;
+    if (parseInt(month, 10) < 1 || parseInt(month, 10) > 12) return null;
     return `${year}-${month}-01`;
   }
 
   // Try MM/YYYY or MM/YY  (2 numeric groups)
+  // "10/2025" → 2025-10-01,  "09/27" → 2027-09-01
   const twoPartMatch = dateStr.match(/^(\d{1,2})[\/.\-](\d{2,4})$/);
   if (twoPartMatch) {
     let month = twoPartMatch[1];
     let year = twoPartMatch[2];
     if (month.length === 1) month = "0" + month;
     if (year.length === 2) year = "20" + year;
-    // Sanity: month must be 01–12
     if (parseInt(month, 10) < 1 || parseInt(month, 10) > 12) return null;
     return `${year}-${month}-01`;
   }
@@ -150,6 +151,22 @@ const EXCLUDE_KEYWORDS = [
 
 const SHORT_FRAGMENTS = new Set(["ip", "bp", "usp", "rx", "®", "i.p.", "b.p."]);
 
+/**
+ * Heuristic: Is this line likely a brand/trade name?
+ * Brand names: short (1-3 words), Title-Case or ALL-CAPS, appear early.
+ * e.g. "CetriTreat LM", "CALPOL", "Augmentin"
+ */
+function isBrandNameLine(line: string): boolean {
+  const words = line.trim().split(/\s+/);
+  if (words.length < 1 || words.length > 4) return false;
+  const letters = (line.match(/[a-zA-Z]/g) || []).length;
+  const nonSpace = line.replace(/[\s®™]/g, "").length;
+  if (nonSpace === 0 || letters / nonSpace < 0.8) return false;
+  const titleCase = words.every(w => /^[A-Z]/.test(w));
+  const allCaps = words.every(w => w === w.toUpperCase() && /[A-Z]/.test(w));
+  return titleCase || allCaps;
+}
+
 function detectMedicineName(lines: string[]): string {
   let bestCandidate = "";
   let bestScore = -1;
@@ -162,31 +179,40 @@ function detectMedicineName(lines: string[]): string {
     if (EXCLUDE_KEYWORDS.some(k => lower.includes(k))) return;
 
     const words = line.split(/\s+/).filter(Boolean);
-    if (words.length < 3) return; // must have ≥ 3 words
+    if (words.length < 1) return;
 
     const letterCount = (line.match(/[a-zA-Z]/g) || []).length;
-    const mostlyLetters = letterCount / line.length > 0.5;
-    if (!mostlyLetters) return;
+    if (letterCount / line.length < 0.5) return;
 
-    // Skip lines that are clearly date/batch lines
-    if (/\b(?:mfg|mfd|exp|batch|b\.no)/i.test(line)) return;
-    // Skip lines with long number sequences (batch numbers, licence numbers)
+    // Skip date/batch/address lines
+    if (/\b(?:mfg|mfd|exp|batch|b\.no|lic|no\.)\b/i.test(line)) return;
     if (/\d{5,}/.test(line)) return;
 
     let score = 0;
-    // Prefer lines near the top of the OCR output
-    if (index === 0) score += 80;
-    else if (index < 3) score += 60;
-    else if (index < 6) score += 40;
+
+    // Strong position bonus
+    if (index === 0) score += 100;
+    else if (index === 1) score += 85;
+    else if (index < 4) score += 65;
+    else if (index < 7) score += 40;
     else if (index < 10) score += 20;
 
-    // Reward longer, more word-rich lines
-    score += words.length * 6;
-
-    // Reward pharmaceutical suffixes
-    if (/\b(?:tablets?|capsules?|syrup|injection|solution|suspension|cream|ointment|gel|drops?)\b/i.test(line)) {
-      score += 30;
+    // Brand name bonus: short, title-cased, early = very likely the brand
+    if (isBrandNameLine(line) && index < 6) {
+      score += 80;
     }
+
+    // Pharmaceutical dosage form bonus
+    if (/\b(?:tablets?|capsules?|syrup|injection|solution|suspension|cream|ointment|gel|drops?)\b/i.test(line)) {
+      score += 25;
+    }
+
+    // Penalise very long generic lines so brand wins when both present
+    if (words.length > 6) score -= 15;
+
+    // Reward moderate word count (2-4 = brand sweet spot)
+    if (words.length >= 2 && words.length <= 4) score += 20;
+    else score += words.length * 3;
 
     if (score > bestScore) {
       bestScore = score;
