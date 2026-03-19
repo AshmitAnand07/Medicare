@@ -4,13 +4,30 @@ import User from '@/models/User';
 import Ngo from '@/models/Ngo';
 import bcrypt from 'bcryptjs';
 
+import { z } from 'zod';
+
+const registerSchema = z.object({
+    name: z.string().min(2, 'Name must be at least 2 characters'),
+    email: z.string().email('Invalid email address'),
+    password: z.string().min(6, 'Password must be at least 6 characters'),
+    role: z.enum(['user', 'ngo', 'admin']).optional().default('user'),
+    pincode: z.string().optional(),
+    address: z.string().optional(),
+    phone: z.string().optional(),
+    description: z.string().optional(),
+    website: z.string().url('Invalid URL').optional().or(z.literal(''))
+});
+
 export async function POST(req: NextRequest) {
     try {
-        const { name, email, password, role, pincode, address, phone, description, website } = await req.json();
+        const body = await req.json();
+        const parseResult = registerSchema.safeParse(body);
 
-        if (!name || !email || !password) {
-            return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+        if (!parseResult.success) {
+            return NextResponse.json({ error: parseResult.error.issues[0].message }, { status: 400 });
         }
+
+        const { name, email, password, role, pincode, address, phone, description, website } = parseResult.data;
 
         await connectToDatabase();
 

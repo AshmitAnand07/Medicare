@@ -3,6 +3,12 @@ import connectToDatabase from '@/lib/db';
 import Donation from '@/models/Donation';
 import { verifyJWT } from '@/lib/auth';
 
+import { z } from 'zod';
+
+const statusSchema = z.object({
+    status: z.enum(['accepted', 'rejected', 'collected'])
+});
+
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     try {
         const token = req.cookies.get('token')?.value;
@@ -13,7 +19,14 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
             return NextResponse.json({ error: 'Only NGOs can accept donations' }, { status: 403 });
         }
 
-        const { status } = await req.json(); // 'accepted', 'rejected', 'collected'
+        const body = await req.json();
+        const parseResult = statusSchema.safeParse(body);
+
+        if (!parseResult.success) {
+            return NextResponse.json({ error: parseResult.error.issues[0].message }, { status: 400 });
+        }
+
+        const { status } = parseResult.data;
 
         await connectToDatabase();
 
@@ -26,7 +39,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
         donation.status = status;
         donation.ngoId = payload.id as any;
-        if (status === 'completed' || status === 'collected') {
+        if (status === 'collected') {
             donation.completedAt = new Date();
         }
 

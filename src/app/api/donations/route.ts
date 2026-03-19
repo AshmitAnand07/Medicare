@@ -40,6 +40,18 @@ export async function GET(req: NextRequest) {
     }
 }
 
+import { z } from 'zod';
+
+const donationSchema = z.object({
+    medicineId: z.string().min(1, 'Medicine ID is required'),
+    ngoName: z.string().optional(),
+    pickupAddress: z.string().optional(),
+    pickupDate: z.string().optional(),
+    phone: z.string().optional(),
+    donateStrips: z.union([z.number(), z.string()]).optional(),
+    donateTablets: z.union([z.number(), z.string()]).optional()
+});
+
 export async function POST(req: NextRequest) {
     try {
         const token = req.cookies.get('token')?.value;
@@ -48,7 +60,14 @@ export async function POST(req: NextRequest) {
         const payload = await verifyJWT(token);
         if (!payload) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-        const { medicineId, ngoName, pickupAddress, pickupDate, phone, donateStrips, donateTablets } = await req.json();
+        const body = await req.json();
+        const parseResult = donationSchema.safeParse(body);
+
+        if (!parseResult.success) {
+            return NextResponse.json({ error: parseResult.error.issues[0].message }, { status: 400 });
+        }
+
+        const { medicineId, ngoName, pickupAddress, pickupDate, phone, donateStrips, donateTablets } = parseResult.data;
 
         await connectToDatabase();
 

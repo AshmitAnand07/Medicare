@@ -5,13 +5,23 @@ import Ngo from '@/models/Ngo';
 import bcrypt from 'bcryptjs';
 import { signJWT } from '@/lib/auth';
 
+import { z } from 'zod';
+
+const loginSchema = z.object({
+    email: z.string().email('Invalid email address'),
+    password: z.string().min(1, 'Password is required')
+});
+
 export async function POST(req: NextRequest) {
     try {
-        const { email, password } = await req.json();
+        const body = await req.json();
+        const parseResult = loginSchema.safeParse(body);
 
-        if (!email || !password) {
-            return NextResponse.json({ error: 'Missing credentials' }, { status: 400 });
+        if (!parseResult.success) {
+            return NextResponse.json({ error: parseResult.error.issues[0].message }, { status: 400 });
         }
+
+        const { email, password } = parseResult.data;
 
         await connectToDatabase();
 

@@ -39,6 +39,20 @@ export async function GET(req: NextRequest) {
     }
 }
 
+import { z } from 'zod';
+
+const medicineSchema = z.object({
+    name: z.string().min(1, 'Name is required'),
+    expiryDate: z.string().or(z.date()),
+    manufacturingDate: z.string().or(z.date()).optional(),
+    mrp: z.union([z.number(), z.string()]).optional(),
+    category: z.string().optional(),
+    familyMember: z.string().optional(),
+    quantityStrips: z.union([z.number(), z.string()]).optional(),
+    quantityTablets: z.union([z.number(), z.string()]).optional(),
+    forceAdd: z.boolean().optional()
+});
+
 export async function POST(req: NextRequest) {
     try {
         const token = req.cookies.get('token')?.value;
@@ -48,11 +62,13 @@ export async function POST(req: NextRequest) {
         if (!payload) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
         const body = await req.json();
-        const { name, expiryDate, manufacturingDate, mrp, category, familyMember } = body;
+        const parseResult = medicineSchema.safeParse(body);
 
-        if (!name || !expiryDate) {
-            return NextResponse.json({ error: 'Name and Expiry Date are required' }, { status: 400 });
+        if (!parseResult.success) {
+            return NextResponse.json({ error: parseResult.error.issues[0].message }, { status: 400 });
         }
+
+        const { name, expiryDate, manufacturingDate, mrp, category, familyMember } = parseResult.data;
 
         await connectToDatabase();
 
