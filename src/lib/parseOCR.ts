@@ -54,11 +54,15 @@ function parseDate(dateStr: string): string | null {
 // ---------------------------------------------------------------------------
 
 /**
- * Match a date token: MM/YYYY, MM/YY, DD/MM/YYYY (separators: / - .)
- * We use a named group so we can pluck it easily.
+ * Returns a fresh (non-global) RegExp for a single date token each time.
+ * Avoids lastIndex corruption when the same pattern is reused across calls.
  */
-const DATE_TOKEN_RE =
-  /\b(\d{1,2}[\/.\-]\d{1,2}[\/.\-]\d{2,4}|\d{1,2}[\/.\-]\d{2,4})\b/g;
+function makeDateTokenRe(flags = ""): RegExp {
+  return new RegExp(
+    "(\\d{1,2}[\\/\\.\\-]\\d{1,2}[\\/\\.\\-]\\d{2,4}|\\d{1,2}[\\/\\.\\-]\\d{2,4})",
+    flags
+  );
+}
 
 /**
  * Expiry keyword variants found on Indian medicine strips, including
@@ -91,16 +95,19 @@ function extractKeywordDate(
   fullText: string,
   keywordRe: RegExp
 ): string | null {
-  // We look for: <keyword> <optional non-digit noise up to 20 chars> <date>
+  // Fresh non-global date regex each call — no lastIndex corruption
+  const dateRe = makeDateTokenRe();
+
+  // Allow up to 25 non-digit characters between the keyword and the date
+  // (greedy {0,25}, NOT lazy, so it actually consumes separators like ": ")
   const combined = new RegExp(
-    keywordRe.source + "[^\\d]{0,20}?" + DATE_TOKEN_RE.source,
+    keywordRe.source + "[^\\d]{0,25}" + dateRe.source,
     "i"
   );
-  DATE_TOKEN_RE.lastIndex = 0; // reset global regex state
 
   const m = fullText.match(combined);
   if (m) {
-    // The date is in the last capture group
+    // The date token is in the last capture group
     const dateToken = m[m.length - 1];
     return parseDate(dateToken);
   }
@@ -112,10 +119,10 @@ function extractKeywordDate(
 // ---------------------------------------------------------------------------
 
 function extractAllDates(text: string): string[] {
-  DATE_TOKEN_RE.lastIndex = 0;
+  const re = makeDateTokenRe("g"); // fresh global regex — no stale lastIndex
   const raw: string[] = [];
   let m: RegExpExecArray | null;
-  while ((m = DATE_TOKEN_RE.exec(text)) !== null) {
+  while ((m = re.exec(text)) !== null) {
     raw.push(m[1]);
   }
 
