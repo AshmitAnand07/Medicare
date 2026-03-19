@@ -34,15 +34,22 @@ export default function Dashboard() {
                 const res = await fetch('/api/medicines');
                 if (res.ok) {
                     const data = await res.json();
-                    setMedicines(data);
+
 
                     // Calculate stats
-                    const total = data.length;
-                    const expiring = data.filter((m: Medicine) => m.status === 'expiring').length;
-                    const expired = data.filter((m: Medicine) => m.status === 'expired').length;
-                    // Donated isn't in this API yet implicitly unless we filter, assuming isDonated flag in model
-                    // I will update API later to include isDonated filter or returns
-                    setStats({ total, expiring, expired, donated: 0 });
+                    const availableMedicines = data.filter((m: any) => {
+                        const remStrips = (m.quantityStrips || 0) - (m.donatedStrips || 0);
+                        const remTablets = (m.quantityTablets || 0) - (m.donatedTablets || 0);
+                        return remStrips > 0 || remTablets > 0;
+                    });
+                    setMedicines(availableMedicines);
+
+                    const total = availableMedicines.length;
+                    const expiring = availableMedicines.filter((m: any) => m.status === 'expiring').length;
+                    const expired = availableMedicines.filter((m: any) => m.status === 'expired').length;
+                    const donated = data.filter((m: any) => (m.donatedStrips > 0 || m.donatedTablets > 0) || m.isDonated).length;
+                    
+                    setStats({ total, expiring, expired, donated });
                 }
             } catch (e) {
                 console.error("Failed to fetch medicines");
