@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import OCRScanner from '@/components/OCRScanner';
+import { parseMedicineOCR } from '@/lib/parseOCR';
 
 export default function AddMedicinePage() {
     const router = useRouter();
@@ -63,14 +64,14 @@ export default function AddMedicinePage() {
 
                 {/* OCR Scanner Component */}
                 <OCRScanner onScanSuccess={(text) => {
-                    // Extract basic text to auto-fill (basic heuristic)
-                    const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-                    if (lines.length > 0) {
-                        setFormData(prev => ({ 
-                             ...prev, 
-                             name: lines[0].substring(0, 50) 
-                        }));
-                    }
+                    const parsedData = parseMedicineOCR(text);
+                    setFormData(prev => ({ 
+                         ...prev, 
+                         name: parsedData.medicineName || prev.name,
+                         expiryDate: parsedData.expiryDate || prev.expiryDate,
+                         manufacturingDate: parsedData.manufacturingDate || prev.manufacturingDate,
+                         mrp: parsedData.mrp || prev.mrp
+                    }));
                 }} />
 
                 <form onSubmit={(e) => handleSubmit(e, false)} className="space-y-6">
@@ -117,6 +118,16 @@ export default function AddMedicinePage() {
 
                     <div className="grid grid-cols-2 gap-6">
                         <div>
+                            <label className="block text-sm font-medium text-gray-700">Manufacturing Date</label>
+                            <input
+                                name="manufacturingDate"
+                                type="date"
+                                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500"
+                                value={formData.manufacturingDate}
+                                onChange={handleChange}
+                            />
+                        </div>
+                        <div>
                             <label className="block text-sm font-medium text-gray-700">Expiry Date</label>
                             <input
                                 name="expiryDate"
@@ -127,6 +138,9 @@ export default function AddMedicinePage() {
                                 onChange={handleChange}
                             />
                         </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-6">
                         <div>
                             <label className="block text-sm font-medium text-gray-700">Category</label>
                             <select
