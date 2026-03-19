@@ -57,7 +57,7 @@ export default function AddMedicinePage() {
             }
 
             if (!res.ok) {
-                throw new Error(data.error || 'Failed to add medicine');
+                throw new Error(data.message || data.error || 'Failed to add medicine');
             }
 
             router.push('/dashboard');

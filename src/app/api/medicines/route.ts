@@ -68,7 +68,19 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: parseResult.error.issues[0].message }, { status: 400 });
         }
 
-        const { name, expiryDate, manufacturingDate, mrp, category, familyMember } = parseResult.data;
+        const { name: rawName, expiryDate: rawExpiry, manufacturingDate, mrp, category, familyMember } = parseResult.data;
+        const name = rawName.trim();
+        const expiryDate = new Date(rawExpiry);
+
+        // EXPIRY VALIDATION
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        if (expiryDate < today) {
+            return NextResponse.json({ 
+                error: "Invalid Expiry", 
+                message: "This medicine is already expired and cannot be added." 
+            }, { status: 400 });
+        }
 
         await connectToDatabase();
 
@@ -103,7 +115,6 @@ export async function POST(req: NextRequest) {
                     existing.quantityTablets = (existing.quantityTablets || 0) + Number(body.quantityTablets);
                 }
                 
-                // Update expiry if new one is later? (Optional but good) - Spec didn't say, keeping old for now.
                 await existing.save();
 
                 return NextResponse.json({
@@ -113,17 +124,16 @@ export async function POST(req: NextRequest) {
             }
         }
 
-        const expiry = new Date(expiryDate);
-        const status = getStatus(expiry);
+        const status = getStatus(expiryDate);
 
         const newMedicine = await Medicine.create({
             userId: String(payload.id),
             name,
-            expiryDate: expiry,
+            expiryDate,
             manufacturingDate: manufacturingDate ? new Date(manufacturingDate) : undefined,
             mrp: mrp ? Number(mrp) : undefined,
             category,
-            status, // Calculated initial status
+            status,
             familyMember: familyMember || 'Self',
             quantityStrips: body.quantityStrips ? Number(body.quantityStrips) : 0,
             quantityTablets: body.quantityTablets ? Number(body.quantityTablets) : 0,
