@@ -5,129 +5,154 @@ export interface ParsedMedicineData {
   mrp?: string;
 }
 
-function parseDate(dateStr: string): Date | null {
+function parseDate(dateStr: string): string | null {
   if (!dateStr) return null;
+  // Patterns like MM/YYYY, MM-YYYY, MM/YY, DD/MM/YYYY
+  const datePattern = /(\d{1,2})[/.-](\d{1,2}(?:[/.-]\d{2,4})?|\d{4})/;
+  const match = dateStr.match(datePattern);
+  if (!match) return null;
+
+  let month, year;
+  const parts = match[0].split(/[/.-]/);
   
-  // Try MM/YYYY or MM-YYYY
-  const matchMMYYYY = dateStr.match(/(\d{2})[/.-](\d{2,4})/);
-  if (matchMMYYYY) {
-    let month = parseInt(matchMMYYYY[1], 10);
-    let year = parseInt(matchMMYYYY[2], 10);
-    if (matchMMYYYY[2].length === 2) year += 2000;
-    return new Date(year, month - 1, 1);
+  if (parts.length === 3) {
+    // DD/MM/YYYY
+    month = parts[1];
+    year = parts[2];
+  } else {
+    // MM/YYYY or MM-YYYY or MM/YY
+    month = parts[0];
+    year = parts[1];
   }
 
-  // Handle formats like "OCT 2025" or "OCT 25"
-  const months: Record<string, number> = {
-    jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
-    jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11
-  };
-  const matchTextDate = dateStr.match(/([A-Za-z]{3})\w*\s*[/.-]?\s*(\d{2,4})/);
-  if (matchTextDate) {
-    const month = months[matchTextDate[1].toLowerCase()];
-    if (month !== undefined) {
-      let year = parseInt(matchTextDate[2], 10);
-      if (matchTextDate[2].length === 2) year += 2000;
-      return new Date(year, month, 1);
-    }
-  }
-
-  return null;
-}
-
-function formatDateForInput(date: Date | null): string {
-  if (!date) return '';
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
+  if (month.length === 1) month = '0' + month;
+  if (year.length === 2) year = '20' + year;
+  
   return `${year}-${month}-01`;
 }
 
 export function parseMedicineOCR(text: string): ParsedMedicineData {
-  const result: ParsedMedicineData = {};
-  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  const result: ParsedMedicineData = {
+    medicineName: '',
+    manufacturingDate: '',
+    expiryDate: '',
+    mrp: ''
+  };
 
-  // 1. MRP Regex
+  const lines = text.split('\n').map(line => line.trim()).filter(Boolean);
+
+  const excludeKeywords = [
+    'ltd', 'pvt', 'private', 'wellness', 'pharma', 'laboratories', 
+    'road', 'street', 'school', 'temple', 'ahmedabad', 'india', 
+    'visit', 'email', 'website', 'address', 'manufactured', 
+    'marketed', 'distributed', 'licence', 'batch', 'who', 
+    'gmp', 'certified', 'lic.', 'b.no', 'copyright', 'registered', 
+    'trademark', 'keep out of reach'
+  ];
+
+  const shortFragments = ['ip', 'bp', 'usp', 'rx', '®'];
+
+  // 1. MRP Detection
   const mrpRegex = /(?:MRP|₹|Rs\.?)\s*[:.-]?\s*(\d+(?:\.\d+)?)/i;
-  // 2. Expiry Regex
+  // 2. Expiry Detection
   const expiryRegex = /(?:EXP|Expiry(?: Date)?)\s*[:.-]?\s*([A-Za-z0-9/.-]+(?:\s+\d{2,4})?)/i;
-  // 3. Mfg Regex
+  // 3. Mfg Detection
   const mfgRegex = /(?:MFD|Mfg(?: Date)?|Manufactured)\s*[:.-]?\s*([A-Za-z0-9/.-]+(?:\s+\d{2,4})?)/i;
 
-  const foundDates: { date: Date; type?: 'mfg' | 'exp' }[] = [];
-
-  const addressKeywords = ['road', 'street', 'school', 'temple', 'ahmedabad', 'india', 'gujarat', 'visit', 'email', 'website', 'villas', 'vasna', 'sanand', 'nagar'];
-  const companyKeywords = ['ltd', 'pvt', 'private', 'pharma', 'wellness', 'laboratories', 'manufactured', 'marketed', 'distributed', 'pharmaceuticals'];
-  const metadataKeywords = ['batch', 'licence', 'lic', 'who', 'gmp', 'certified', 'b.no', 'copyright', 'registered', 'trademark', 'keep out of reach'];
-  const medicineSuffixes = ['hydrochloride', 'sodium', 'tablets', 'capsules', 'syrup', 'suspension', 'injection', 'lp', 'ip', 'usp', 'bp', 'montelukast', 'levocetirizine', 'paracetamol', 'dolo'];
-
-  let possibleNames: { line: string; score: number }[] = [];
+  let medicineNameCandidate = '';
+  let highestScore = -1;
 
   lines.forEach((line, index) => {
-    const lower = line.toLowerCase();
-
-    // --- MRP Detection ---
+    const lowerLine = line.toLowerCase();
+    
+    // MRP
     if (!result.mrp) {
-      const match = line.match(mrpRegex);
-      if (match) result.mrp = match[1];
-    }
-
-    // --- Date Detection (Labeled) ---
-    const mfgMatch = line.match(mfgRegex);
-    if (mfgMatch) {
-      const d = parseDate(mfgMatch[1]);
-      if (d) foundDates.push({ date: d, type: 'mfg' });
-    }
-
-    const expMatch = line.match(expiryRegex);
-    if (expMatch) {
-      const d = parseDate(expMatch[1]);
-      if (d) foundDates.push({ date: d, type: 'exp' });
-    }
-
-    // --- Unlabeled Date Detection (if needed) ---
-    if (!mfgMatch && !expMatch) {
-      const dateOnlyMatch = line.match(/(\d{2}[/.-]\d{2,4}|[A-Za-z]{3}\s*\d{2,4})/);
-      if (dateOnlyMatch) {
-        const d = parseDate(dateOnlyMatch[1]);
-        if (d) foundDates.push({ date: d });
+      const mrpMatch = line.match(mrpRegex);
+      if (mrpMatch) {
+        result.mrp = mrpMatch[1];
       }
     }
 
-    // --- Medicine Name Logic ---
-    const isExcluded = [...addressKeywords, ...companyKeywords, ...metadataKeywords].some(kw => lower.includes(kw));
-    const hasMedicineSuffix = medicineSuffixes.some(sh => lower.includes(sh));
-    
-    // Heuristic Score
-    let score = 0;
-    if (hasMedicineSuffix) score += 50;
-    if (!isExcluded) score += 20;
-    if (index < 10) score += (10 - index); // Prioritize top lines
-    if (line.length > 5 && line.length < 50) score += 10;
-    if (/^[A-Z& ]+$/.test(line)) score += 15; // UPPERCASE names are common
+    // Expiry
+    if (!result.expiryDate) {
+      const expMatch = line.match(expiryRegex);
+      if (expMatch) {
+        const parsed = parseDate(expMatch[1]);
+        if (parsed) result.expiryDate = parsed;
+      }
+    }
 
-    if (!isExcluded || hasMedicineSuffix) {
-      possibleNames.push({ line, score });
+    // Mfg
+    if (!result.manufacturingDate) {
+      const mfgMatch = line.match(mfgRegex);
+      if (mfgMatch) {
+        const parsed = parseDate(mfgMatch[1]);
+        if (parsed) result.manufacturingDate = parsed;
+      }
+    }
+
+    // Medicine Name Logic
+    // Conditions for candidate:
+    // - Not an excluded line
+    // - Not a short fragment
+    // - At least 3 words
+    // - Mostly alphabetic
+    // - No numbers (usually names don't have digits, unless 500mg etc, but user said "no numbers")
+    //   Wait, '500mg' is common, but user explicitly said "does not contain numbers or address keywords"
+    const words = line.split(/\s+/).filter(w => w.length > 1);
+    const isExcluded = excludeKeywords.some(kw => lowerLine.includes(kw));
+    const isShortFragment = shortFragments.some(sf => lowerLine === sf || words.every(w => shortFragments.includes(w.toLowerCase())));
+    const hasNumbers = /\d/.test(line);
+    const mostlyAlphabetic = (line.match(/[a-zA-Z]/g) || []).length / line.length > 0.5;
+
+    if (!isExcluded && !isShortFragment && words.length >= 2 && !hasNumbers && mostlyAlphabetic) {
+      // Score based on position, length, and words
+      let score = 0;
+      if (index < 5) score += 50; // Top 5 lines
+      else if (index < 10) score += 30;
+      
+      score += (words.length * 5);
+      
+      if (score > highestScore) {
+        highestScore = score;
+        medicineNameCandidate = line;
+      }
     }
   });
 
-  // Handle Dates
-  const mfg = foundDates.find(d => d.type === 'mfg')?.date || foundDates.sort((a, b) => a.date.getTime() - b.date.getTime())[0]?.date;
-  const exp = foundDates.find(d => d.type === 'exp')?.date || foundDates.sort((a, b) => b.date.getTime() - a.date.getTime())[0]?.date;
+  // If no candidate was found with at least 3 words (user's rule 4, bullet 1)
+  // I'll relax to 2 words if it's very likely, but user's prompt says "contains at least 3 words"
+  // Let's refine the candidate search focusing on 3 words first.
+  if (!medicineNameCandidate || medicineNameCandidate.split(/\s+/).length < 3) {
+      // Re-scan for 3+ words specifically
+      let best3Word = '';
+      let best3Score = -1;
+      lines.forEach((line, index) => {
+          const lowerLine = line.toLowerCase();
+          const words = line.split(/\s+/).filter(w => w.length > 1);
+          const isExcluded = excludeKeywords.some(kw => lowerLine.includes(kw));
+          const isShortFragment = shortFragments.some(sf => lowerLine === sf);
+          const hasNumbers = /\d/.test(line);
+          const mostlyAlphabetic = (line.match(/[a-zA-Z]/g) || []).length / line.length > 0.5;
 
-  if (mfg) result.manufacturingDate = formatDateForInput(mfg);
-  if (exp && exp !== mfg) result.expiryDate = formatDateForInput(exp);
-  else if (foundDates.length > 1) {
-    // If only one date is found, we can't be sure, but usually we want expiry
-    const sorted = foundDates.map(f => f.date).sort((a, b) => a.getTime() - b.getTime());
-    result.manufacturingDate = formatDateForInput(sorted[0]);
-    result.expiryDate = formatDateForInput(sorted[sorted.length - 1]);
+          if (!isExcluded && !isShortFragment && words.length >= 3 && !hasNumbers && mostlyAlphabetic) {
+              let score = 100 - index;
+              if (score > best3Score) {
+                  best3Score = score;
+                  best3Word = line;
+              }
+          }
+      });
+      if (best3Word) medicineNameCandidate = best3Word;
+      else if (medicineNameCandidate.split(/\s+/).length < 3) {
+          // If the previous candidate found (even with 2 words) doesn't meet the 3-word rule, 
+          // and no 3rd word exists, we should probably follow the "leave empty" rule if it's doubtful.
+          // BUT, some medicines are two words. User said "at least 3 words" and "otherwise leave empty".
+          medicineNameCandidate = ''; 
+      }
   }
 
-  // Set Medicine Name
-  if (possibleNames.length > 0) {
-    possibleNames.sort((a, b) => b.score - a.score);
-    result.medicineName = possibleNames[0].line;
-  }
+  result.medicineName = medicineNameCandidate;
 
   return result;
 }
