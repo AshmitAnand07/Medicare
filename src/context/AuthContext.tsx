@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 
 interface User {
     id: string;
@@ -22,39 +22,56 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Pages that require authentication
+const PROTECTED_PATHS = ['/dashboard', '/add-medicine', '/inventory', '/history', '/caretaker'];
+// Pages only for guests (logged in users should not see them)
+const GUEST_ONLY_PATHS = ['/login', '/register'];
+
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
     const router = useRouter();
+    const pathname = usePathname();
 
     useEffect(() => {
         const checkUser = async () => {
             try {
-                const res = await fetch('/api/auth/me');
+                const res = await fetch('/api/auth/me', {
+                    credentials: 'include', // Ensure cookies are always sent
+                });
+
                 if (res.ok) {
                     const data = await res.json();
-                    setUser(data.user);
+                    if (data?.user) {
+                        setUser(data.user);
+                    } else {
+                        setUser(null);
+                    }
                 } else {
                     setUser(null);
-                    localStorage.removeItem('neuramed_user');
+                    // If on a protected page and auth fails, redirect to login
+                    if (PROTECTED_PATHS.some(p => pathname?.startsWith(p))) {
+                        router.push('/login');
+                    }
                 }
             } catch (error) {
-                if (process.env.NODE_ENV === 'development') {
-                    console.error("Session check failed", error);
-                }
+                console.error("Session check failed", error);
                 setUser(null);
+                // Redirect to login on network error if on protected page
+                if (PROTECTED_PATHS.some(p => pathname?.startsWith(p))) {
+                    router.push('/login');
+                }
             } finally {
                 setLoading(false);
             }
         };
 
         checkUser();
-    }, []);
+    }, []);  // eslint-disable-line react-hooks/exhaustive-deps
 
     const login = (userData: User) => {
+        if (!userData) return;
         setUser(userData);
-        // localStorage is kept as a backup/quick access but source of truth is cookie
-        localStorage.setItem('neuramed_user', JSON.stringify(userData));
 
         // Redirect based on role
         if (userData.role === 'ngo') {
@@ -68,13 +85,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const logout = async () => {
         try {
-            await fetch('/api/auth/logout', { method: 'POST' });
+            await fetch('/api/auth/logout', { 
+                method: 'POST',
+                credentials: 'include',
+            });
         } catch (error) {
             console.error("Logout failed", error);
         }
 
         setUser(null);
-        localStorage.removeItem('neuramed_user');
         router.push('/login');
     };
 
