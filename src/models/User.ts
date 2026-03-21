@@ -5,7 +5,7 @@ export interface IUser {
     name: string;
     email: string;
     password?: string;
-    role: 'user' | 'ngo' | 'admin';
+    role: 'user' | 'patient' | 'caretaker' | 'ngo' | 'admin';
     pincode?: string;
     phone?: string;
     address?: string; // For NGOs mostly
@@ -16,7 +16,7 @@ const UserSchema = new Schema<IUser>({
     name: { type: String, required: true },
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
-    role: { type: String, enum: ['user', 'ngo', 'admin'], default: 'user' },
+    role: { type: String, enum: ['user', 'patient', 'caretaker', 'ngo', 'admin'], default: 'user' },
     pincode: { type: String },
     phone: { type: String },
     address: { type: String },

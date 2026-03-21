@@ -1,12 +1,6 @@
 import mongoose from 'mongoose';
 
-const MONGODB_URI = process.env.MONGODB_URI;
-
-if (!MONGODB_URI) {
-  throw new Error(
-    'Please define the MONGODB_URI environment variable inside .env.local'
-  );
-}
+// Moved top-level check to connectToDatabase to allow build to pass
 
 /**
  * Global is used here to maintain a cached connection across hot reloads
@@ -43,7 +37,12 @@ async function connectToDatabase() {
       socketTimeoutMS: 45000,
     };
 
-    cached.promise = connectWithRetry(MONGODB_URI!, opts);
+    const uri = process.env.MONGODB_URI;
+    if (!uri) {
+      throw new Error('Please define the MONGODB_URI environment variable inside .env.local');
+    }
+
+    cached.promise = connectWithRetry(uri, opts);
   }
   
   try {

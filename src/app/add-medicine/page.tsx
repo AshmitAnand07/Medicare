@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import MedicineScanner from '@/components/MedicineScanner';
 import { parseMedicineOCR } from '@/lib/parseOCR';
+import PrescriptionUploader from '@/components/PrescriptionUploader';
 
 export default function AddMedicinePage() {
     const router = useRouter();
@@ -71,6 +72,18 @@ export default function AddMedicinePage() {
         <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
                 <h1 className="text-2xl font-bold text-gray-900 mb-6">Add New Medicine</h1>
+
+                {/* AI Prescription Uploader */}
+                <PrescriptionUploader onUploadSuccess={() => {
+                    // Optional: refresh page or tell user to see dashboard
+                    setTimeout(() => router.push('/dashboard'), 2000);
+                }} />
+
+                <div className="relative flex items-center py-5">
+                    <div className="flex-grow border-t border-gray-200"></div>
+                    <span className="flex-shrink-0 mx-4 text-gray-400 font-medium">OR ADD MANUALLY</span>
+                    <div className="flex-grow border-t border-gray-200"></div>
+                </div>
 
                 {/* Medicine Scanner Component */}
                 <MedicineScanner onScanSuccess={(text) => {

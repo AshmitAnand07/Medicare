@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Plus, AlertTriangle, Heart, Package, Search } from 'lucide-react';
 import DisposalModal from '@/components/DisposalModal';
+import MedicineSchedule from '@/components/MedicineSchedule';
+import ReminderEngine from '@/components/ReminderEngine';
 
 interface Medicine {
     _id: string;
@@ -68,6 +70,12 @@ export default function Dashboard() {
                     <Plus size={24} /> Add Medicine
                 </Link>
             </div>
+
+            {/* Background Medical Reminder Engine */}
+            <ReminderEngine />
+
+            {/* Smart Medicine Schedule AI view */}
+            <MedicineSchedule />
 
             {/* Stats Grid */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-10">

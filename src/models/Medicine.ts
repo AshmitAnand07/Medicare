@@ -10,6 +10,14 @@ export interface IMedicine {
     category?: string;
     status: 'safe' | 'expiring' | 'expired';
     familyMember?: string; // e.g. "Father", "Self"
+    
+    // Smart Reminder Scheduling Fields
+    dosage?: string;
+    time?: string;      // e.g. "Morning", "Afternoon", "Night"
+    frequency?: string; // e.g. "Once daily", "Twice daily"
+    lastTakenDate?: Date;
+    prescriptionImage?: string; // URL of uploaded prescription
+
     quantityStrips?: number;
     quantityTablets?: number;
     donatedStrips?: number;
@@ -27,6 +35,14 @@ const MedicineSchema = new Schema<IMedicine>({
     category: { type: String },
     status: { type: String, enum: ['safe', 'expiring', 'expired'], default: 'safe' },
     familyMember: { type: String, default: 'Self' },
+    
+    // Smart Reminder Scheduling Fields
+    dosage: { type: String },
+    time: { type: String },
+    frequency: { type: String },
+    lastTakenDate: { type: Date },
+    prescriptionImage: { type: String },
+
     quantityStrips: { type: Number, default: 0 },
     quantityTablets: { type: Number, default: 0 },
     donatedStrips: { type: Number, default: 0 },
