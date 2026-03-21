@@ -45,10 +45,15 @@ const PrescriptionUploader: React.FC<PrescriptionUploaderProps> = ({ onUploadSuc
         body: formData,
       });
 
-      const data = await response.json();
+      let data;
+      try {
+        data = await response.json();
+      } catch (e) {
+        throw new Error(`Server Error: ${response.status} ${response.statusText}`);
+      }
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to process prescription');
+        throw new Error(data.details || data.error || 'Failed to process prescription');
       }
 
       setSuccessMsg(`Successfully extracted ${data.data.length} medicines and added to your schedule!`);

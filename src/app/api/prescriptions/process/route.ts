@@ -98,8 +98,11 @@ export async function POST(req: NextRequest) {
             data: savedMedicines,
         }, { status: 200 });
 
-    } catch (error) {
+    } catch (error: any) {
         console.error('Prescription Process Error:', error);
-        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+        return NextResponse.json({ 
+            error: 'Internal Server Error',
+            details: error?.message || String(error)
+        }, { status: 500 });
     }
 }
