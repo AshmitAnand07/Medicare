@@ -17,7 +17,10 @@ export async function GET() {
         await connectToDatabase();
         
         const members = await FamilyMember.find({ userId: decoded.id })
-            .populate('caretakerId', 'name email phone')
+            .populate({
+                path: 'caretakerId',
+                select: 'name email phone'
+            })
             .sort({ createdAt: -1 });
 
         return NextResponse.json(members);
@@ -37,7 +40,7 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const { name, age, relation, caretakerId } = await req.json();
+        const { name, age, relation, caretakerId, caretakerModel } = await req.json();
 
         if (!name || !age || !relation) {
             return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -50,7 +53,8 @@ export async function POST(req: Request) {
             name,
             age: Number(age),
             relation,
-            caretakerId: caretakerId || null
+            caretakerId: caretakerId || null,
+            caretakerModel: caretakerModel || 'User'
         });
 
         return NextResponse.json(newMember, { status: 201 });

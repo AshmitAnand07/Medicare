@@ -16,6 +16,7 @@ export default function ProfilePanel({ isOpen, onClose }: Props) {
     const [familyMembers, setFamilyMembers] = useState([]);
     const [loading, setLoading] = useState(false);
     const [showAddModal, setShowAddModal] = useState(false);
+    const [editingMember, setEditingMember] = useState<any>(null);
 
     useEffect(() => {
         if (isOpen && user) {
@@ -46,7 +47,6 @@ export default function ProfilePanel({ isOpen, onClose }: Props) {
                 body: JSON.stringify(formData)
             });
             if (res.ok) {
-                setShowAddModal(false);
                 fetchFamilyMembers();
             }
         } catch (error) {
@@ -54,61 +54,113 @@ export default function ProfilePanel({ isOpen, onClose }: Props) {
         }
     };
 
+    const handleUpdateMember = async (id: string, formData: any) => {
+        try {
+            const res = await fetch(`/api/family-members/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData)
+            });
+            if (res.ok) {
+                fetchFamilyMembers();
+            }
+        } catch (error) {
+            console.error("Failed to update family member");
+        }
+    };
+
+    const handleDeleteMember = async (id: string) => {
+        if (!window.confirm("Are you sure you want to remove this family member? This will also remove them as a caretaker for others.")) {
+            return;
+        }
+
+        try {
+            const res = await fetch(`/api/family-members/${id}`, {
+                method: 'DELETE'
+            });
+            if (res.ok) {
+                fetchFamilyMembers();
+            }
+        } catch (error) {
+            console.error("Failed to delete family member");
+        }
+    };
+
+    const handleOpenAddModal = () => {
+        setEditingMember(null);
+        setShowAddModal(true);
+    };
+
+    const handleOpenEditModal = (member: any) => {
+        setEditingMember(member);
+        setShowAddModal(true);
+    };
+
     if (!isOpen) return null;
 
     return (
         <div className="fixed inset-0 z-[100] flex justify-end bg-black/40 backdrop-blur-sm animate-in fade-in duration-300">
             <div 
-                className="bg-white w-full max-w-2xl h-full shadow-2xl overflow-y-auto animate-in slide-in-from-right duration-500 border-l border-teal-50"
+                className="bg-white w-full max-w-3xl h-full shadow-2xl overflow-y-auto animate-in slide-in-from-right duration-500 border-l border-teal-50"
             >
                 {/* Header */}
-                <div className="sticky top-0 bg-white border-b border-gray-100 px-8 py-6 flex items-center justify-between z-20">
+                <div className="sticky top-0 bg-white/80 backdrop-blur-md border-b border-gray-100 px-8 py-6 flex items-center justify-between z-20">
                     <div className="flex items-center gap-4">
-                        <div className="bg-teal-600 p-3 rounded-2xl text-white">
+                        <div className="bg-teal-600 p-3 rounded-2xl text-white shadow-lg shadow-teal-100">
                             <User size={24} />
                         </div>
-                        <h2 className="text-2xl font-black text-gray-900">Family Profile</h2>
+                        <h2 className="text-2xl font-black text-gray-900 tracking-tight">Family Profile</h2>
                     </div>
                     <button 
                         onClick={onClose}
-                        className="p-2 hover:bg-gray-100 rounded-xl transition text-gray-400 hover:text-gray-900"
+                        className="p-3 hover:bg-gray-100 rounded-2xl transition text-gray-400 hover:text-gray-900 group"
                     >
-                        <X size={28} />
+                        <X size={28} className="group-hover:rotate-90 transition-transform duration-300" />
                     </button>
                 </div>
 
-                <div className="p-8 space-y-12">
+                <div className="p-8 space-y-12 pb-24">
                     {/* User Info Section */}
                     <section>
-                        <div className="flex items-center justify-between mb-6">
-                            <h3 className="text-sm font-black text-gray-400 uppercase tracking-[0.2em]">Your Information</h3>
-                            <button className="text-teal-600 font-bold hover:underline flex items-center gap-2">
-                                <Settings size={18} /> Edit
+                        <div className="flex items-center justify-between mb-8">
+                            <h3 className="text-sm font-black text-gray-400 uppercase tracking-[0.2em] ml-2 font-mono">My Account</h3>
+                            <button className="bg-gray-50 text-gray-600 p-2 rounded-xl hover:bg-gray-100 transition border border-gray-100 shadow-sm">
+                                <Settings size={20} />
                             </button>
                         </div>
                         
-                        <div className="bg-gray-50 rounded-3xl p-8 border border-gray-100 flex flex-col md:flex-row gap-8 items-center md:items-start text-center md:text-left">
-                            <div className="h-24 w-24 bg-teal-100 rounded-full flex items-center justify-center text-teal-700 text-3xl font-black shadow-inner border-2 border-white">
+                        <div className="bg-gradient-to-br from-gray-50 to-white rounded-[2.5rem] p-8 border border-gray-100 flex flex-col md:flex-row gap-8 items-center md:items-start shadow-sm relative overflow-hidden group">
+                            <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
+                                <Shield size={120} />
+                            </div>
+                            <div className="h-28 w-28 bg-teal-100 rounded-full flex items-center justify-center text-teal-700 text-4xl font-black shadow-inner border-[6px] border-white relative z-10">
                                 {user?.name.charAt(0)}
                             </div>
-                            <div className="flex-1 space-y-4">
-                                <h4 className="text-3xl font-black text-gray-900">{user?.name}</h4>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <div className="flex items-center justify-center md:justify-start gap-2 text-gray-600 font-bold">
-                                        <Mail size={18} className="text-teal-500" />
-                                        <span>{user?.email}</span>
+                            <div className="flex-1 space-y-6 relative z-10 text-center md:text-left">
+                                <div>
+                                    <h4 className="text-4xl font-black text-gray-900 leading-none mb-2">{user?.name}</h4>
+                                    <span className="bg-teal-600 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest">
+                                        {user?.role}
+                                    </span>
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
+                                    <div className="flex items-center justify-center md:justify-start gap-3 text-gray-600 font-bold group/item">
+                                        <div className="bg-white p-2 rounded-lg shadow-sm group-hover/item:text-teal-600 transition">
+                                            <Mail size={16} />
+                                        </div>
+                                        <span className="text-sm">{user?.email}</span>
                                     </div>
-                                    <div className="flex items-center justify-center md:justify-start gap-2 text-gray-600 font-bold">
-                                        <Phone size={18} className="text-teal-500" />
-                                        <span>{user?.phone || 'Add Phone'}</span>
+                                    <div className="flex items-center justify-center md:justify-start gap-3 text-gray-600 font-bold group/item">
+                                        <div className="bg-white p-2 rounded-lg shadow-sm group-hover/item:text-teal-600 transition">
+                                            <Phone size={16} />
+                                        </div>
+                                        <span className="text-sm">{user?.phone || 'Add Phone'}</span>
                                     </div>
-                                    <div className="flex items-center justify-center md:justify-start gap-2 text-gray-600 font-bold">
-                                        <Shield size={18} className="text-teal-500" />
-                                        <span className="capitalize">{user?.role}</span>
-                                    </div>
-                                    <div className="flex items-center justify-center md:justify-start gap-2 text-gray-600 font-bold">
-                                        <Calendar size={18} className="text-teal-500" />
-                                        <span>User since {new Date(user?.createdAt || Date.now()).toLocaleDateString()}</span>
+                                    <div className="flex items-center justify-center md:justify-start gap-3 text-gray-600 font-bold group/item">
+                                        <div className="bg-white p-2 rounded-lg shadow-sm group-hover/item:text-teal-600 transition">
+                                            <Calendar size={16} />
+                                        </div>
+                                        <span className="text-sm">Partner since {new Date(user?.createdAt || Date.now()).toLocaleDateString()}</span>
                                     </div>
                                 </div>
                             </div>
@@ -118,52 +170,59 @@ export default function ProfilePanel({ isOpen, onClose }: Props) {
                     {/* Family Members Section */}
                     <section>
                         <div className="flex items-center justify-between mb-8">
-                            <div className="flex items-center gap-3">
-                                <h3 className="text-sm font-black text-gray-400 uppercase tracking-[0.2em]">Family Members</h3>
-                                <span className="bg-teal-100 text-teal-700 font-black px-3 py-1 rounded-full text-xs">
+                            <div className="flex items-center gap-4">
+                                <h3 className="text-sm font-black text-gray-400 uppercase tracking-[0.2em] ml-2 font-mono">Family Members</h3>
+                                <div className="flex h-6 w-6 bg-teal-100 text-teal-700 items-center justify-center rounded-lg text-xs font-black shadow-sm">
                                     {familyMembers.length}
-                                </span>
+                                </div>
                             </div>
                             <button 
-                                onClick={() => setShowAddModal(true)}
-                                className="bg-teal-600 text-white px-6 py-3 rounded-2xl font-black hover:bg-teal-700 transition flex items-center gap-2 shadow-lg shadow-teal-50"
+                                onClick={handleOpenAddModal}
+                                className="bg-teal-600 text-white px-8 py-4 rounded-2xl font-black hover:bg-teal-700 transition flex items-center gap-3 shadow-xl shadow-teal-100 active:scale-95 transform"
                             >
-                                <Plus size={20} /> Add Member
+                                <Plus size={24} /> New Member
                             </button>
                         </div>
 
                         {loading ? (
-                            <div className="flex flex-col items-center justify-center py-20 text-teal-600 opacity-50">
-                                <Loader2 className="animate-spin mb-4" size={48} />
-                                <p className="font-bold text-lg">Fetching family profiles...</p>
+                            <div className="flex flex-col items-center justify-center py-24 text-teal-600">
+                                <Loader2 className="animate-spin mb-6 opacity-40" size={64} />
+                                <p className="font-black text-xl tracking-tight opacity-60">Refreshing Family Circle...</p>
                             </div>
                         ) : familyMembers.length === 0 ? (
-                            <div className="text-center py-20 bg-gray-50 rounded-3xl border-2 border-dashed border-gray-200">
-                                <Users className="mx-auto text-gray-300 mb-6" size={64} />
-                                <h4 className="text-xl font-black text-gray-900 mb-2">No Family Profiles</h4>
-                                <p className="text-gray-500 font-medium max-w-sm mx-auto">
-                                    Add your children, parents, or elderly relatives to manage their medicine schedule.
+                            <div className="text-center py-24 bg-gray-50 rounded-[3rem] border-4 border-dashed border-gray-100 shadow-inner">
+                                <div className="bg-white w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-8 shadow-sm">
+                                    <Users className="text-gray-200" size={48} />
+                                </div>
+                                <h4 className="text-2xl font-black text-gray-900 mb-3">Your Circle is Empty</h4>
+                                <p className="text-gray-500 font-bold max-w-sm mx-auto text-lg leading-relaxed">
+                                    Start by adding your family members to monitor their health together.
                                 </p>
                             </div>
                         ) : (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 {familyMembers.map((member: any) => (
-                                    <FamilyMemberCard key={member._id} member={member} />
+                                    <FamilyMemberCard 
+                                        key={member._id} 
+                                        member={member} 
+                                        onEdit={handleOpenEditModal}
+                                        onDelete={handleDeleteMember}
+                                    />
                                 ))}
                             </div>
                         )}
                     </section>
+                </div>
 
-                    {/* Bottom Actions */}
-                    <div className="pt-8 border-t border-gray-100">
-                        <button 
-                            onClick={logout}
-                            className="w-full bg-red-50 text-red-600 font-black py-5 rounded-3xl hover:bg-red-100 transition flex items-center justify-center gap-3 text-xl group"
-                        >
-                            <LogOut size={24} className="group-hover:translate-x-1 transition" />
-                            Sign Out Account
-                        </button>
-                    </div>
+                {/* Bottom Logout (now Sticky) */}
+                <div className="sticky bottom-0 bg-white/80 backdrop-blur-md border-t border-gray-100 p-8 mt-auto z-20">
+                    <button 
+                        onClick={logout}
+                        className="w-full bg-red-50 text-red-600 font-black py-6 rounded-3xl hover:bg-red-100 transition flex items-center justify-center gap-4 text-2xl group active:scale-[0.98] shadow-lg shadow-red-50/50"
+                    >
+                        <LogOut size={28} className="group-hover:translate-x-1 transition-transform" />
+                        Log Out Account
+                    </button>
                 </div>
             </div>
 
@@ -171,6 +230,9 @@ export default function ProfilePanel({ isOpen, onClose }: Props) {
                 isOpen={showAddModal} 
                 onClose={() => setShowAddModal(false)} 
                 onAdd={handleAddMember}
+                onUpdate={handleUpdateMember}
+                editingMember={editingMember}
+                otherFamilyMembers={familyMembers}
             />
         </div>
     );

@@ -6,6 +6,7 @@ export interface IFamilyMember extends Document {
     age: number;
     relation: string;
     caretakerId?: mongoose.Types.ObjectId;
+    caretakerModel?: 'User' | 'FamilyMember';
     createdAt: Date;
     updatedAt: Date;
 }
@@ -15,7 +16,15 @@ const FamilyMemberSchema = new Schema<IFamilyMember>({
     name: { type: String, required: true },
     age: { type: Number, required: true },
     relation: { type: String, required: true },
-    caretakerId: { type: Schema.Types.ObjectId, ref: 'User' },
+    caretakerId: { 
+        type: Schema.Types.ObjectId, 
+        refPath: 'caretakerModel' 
+    },
+    caretakerModel: { 
+        type: String, 
+        enum: ['User', 'FamilyMember'],
+        default: 'User'
+    },
 }, { timestamps: true });
 
 // Index for faster lookups
