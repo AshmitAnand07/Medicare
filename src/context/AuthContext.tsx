@@ -7,8 +7,10 @@ interface User {
     id: string;
     name: string;
     email: string;
-    role: 'user' | 'ngo' | 'admin';
+    role: 'user' | 'patient' | 'caretaker' | 'ngo' | 'admin';
     pincode?: string;
+    phone?: string;
+    createdAt?: string;
 }
 
 interface AuthContextType {
