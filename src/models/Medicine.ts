@@ -10,6 +10,7 @@ export interface IMedicine {
     category?: string;
     status: 'safe' | 'expiring' | 'expired';
     familyMember?: string; // e.g. "Father", "Self"
+    familyMemberId?: mongoose.Types.ObjectId; // Pointer to FamilyMember model
     
     // Smart Reminder Scheduling Fields
     dosage?: string;
@@ -17,6 +18,9 @@ export interface IMedicine {
     frequency?: string; // e.g. "Once daily", "Twice daily"
     lastTakenDate?: Date;
     prescriptionImage?: string; // URL of uploaded prescription
+
+    refusalCount: number; // For tracking refused medicine strikes
+    isRefused: boolean;  // Whether it's currently marked as missed/refused
 
     quantityStrips?: number;
     quantityTablets?: number;
@@ -35,6 +39,7 @@ const MedicineSchema = new Schema<IMedicine>({
     category: { type: String },
     status: { type: String, enum: ['safe', 'expiring', 'expired'], default: 'safe' },
     familyMember: { type: String, default: 'Self' },
+    familyMemberId: { type: Schema.Types.ObjectId, ref: 'FamilyMember' },
     
     // Smart Reminder Scheduling Fields
     dosage: { type: String },
@@ -42,6 +47,9 @@ const MedicineSchema = new Schema<IMedicine>({
     frequency: { type: String },
     lastTakenDate: { type: Date },
     prescriptionImage: { type: String },
+
+    refusalCount: { type: Number, default: 0 },
+    isRefused: { type: Boolean, default: false },
 
     quantityStrips: { type: Number, default: 0 },
     quantityTablets: { type: Number, default: 0 },
