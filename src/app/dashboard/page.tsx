@@ -70,8 +70,14 @@ export default function DashboardPage() {
                 fetch('/api/alerts')
             ]);
             
-            if (medsRes.ok) setMedicines(await medsRes.json());
-            if (alertsRes.ok) setAlerts(await alertsRes.json());
+            if (medsRes.ok) {
+                const data = await medsRes.json();
+                setMedicines(Array.isArray(data) ? data : []);
+            }
+            if (alertsRes.ok) {
+                const data = await alertsRes.json();
+                setAlerts(Array.isArray(data) ? data : []);
+            }
         } catch (error) {
             console.error('Failed to fetch dashboard data', error);
         } finally {
@@ -97,7 +103,7 @@ export default function DashboardPage() {
         let memberName = 'Self';
         
         if (alert.familyMemberId) {
-            if (typeof alert.familyMemberId === 'object' && 'name' in alert.familyMemberId) {
+            if (alert.familyMemberId && typeof alert.familyMemberId === 'object' && 'name' in alert.familyMemberId) {
                 memberName = alert.familyMemberId.name;
             } else {
                 const fm = familyMembers.find(f => f._id === alert.familyMemberId);

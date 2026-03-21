@@ -63,8 +63,18 @@ export default function MedicineSchedule({ medicines, onUpdate }: MedicineSchedu
 
     const renderCard = (med: Medicine, isRefused = false) => {
         const timeColor = getTimeColorBase(med.time);
-        const lastTakenStr = med.lastTakenDate ? format(new Date(med.lastTakenDate), 'MMM d, h:mm a') : 'Not taken today';
-        const isTakenToday = med.lastTakenDate && new Date(med.lastTakenDate).toDateString() === new Date().toDateString();
+        
+        // Robust date formatting to prevent crashes
+        let lastTakenStr = 'Not taken today';
+        let isTakenToday = false;
+        
+        if (med.lastTakenDate) {
+            const date = new Date(med.lastTakenDate);
+            if (!isNaN(date.getTime())) {
+                lastTakenStr = format(date, 'MMM d, h:mm a');
+                isTakenToday = date.toDateString() === new Date().toDateString();
+            }
+        }
 
         return (
             <div key={med._id} className={`group relative bg-white rounded-3xl p-6 shadow-sm border-2 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 ${isRefused ? 'border-red-100 opacity-80' : 'border-gray-50 hover:border-teal-100'}`}>
