@@ -1,15 +1,11 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/db';
 import Medicine from '@/models/Medicine';
-import { verifyJWT } from '@/lib/auth';
-import { cookies } from 'next/headers';
+import { getVerifiedToken } from '@/lib/getVerifiedToken';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
     try {
-        const cookieStore = await cookies();
-        const token = cookieStore.get('token')?.value;
-        const decoded = token ? await verifyJWT(token) as any : null;
-
+        const decoded = await getVerifiedToken(req);
         if (!decoded) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
@@ -23,12 +19,9 @@ export async function GET() {
     }
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
     try {
-        const cookieStore = await cookies();
-        const token = cookieStore.get('token')?.value;
-        const decoded = token ? await verifyJWT(token) as any : null;
-
+        const decoded = await getVerifiedToken(req);
         if (!decoded) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
@@ -63,7 +56,6 @@ export async function POST(req: Request) {
         });
 
         if (existingMedicine) {
-            // Suggest merging? For now just return a specific status
             return NextResponse.json({ 
                 status: 'duplicate_warning', 
                 message: 'A medicine with this name already exists for this member.',
@@ -85,7 +77,7 @@ export async function POST(req: Request) {
             dosage,
             time,
             frequency,
-            status: 'safe' // Logic for expiring/expired should be handled by a cleanup or on fetch
+            status: 'safe'
         });
 
         return NextResponse.json(newMedicine, { status: 201 });

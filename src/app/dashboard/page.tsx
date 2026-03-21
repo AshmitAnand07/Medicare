@@ -21,6 +21,7 @@ import {
     ClipboardList
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { authHeaders } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import MedicineSchedule from '@/components/MedicineSchedule';
 import ProfilePanel from '@/components/ProfilePanel';
@@ -65,9 +66,10 @@ export default function DashboardPage() {
 
     const fetchData = async () => {
         try {
+            const headers = authHeaders();
             const [medsRes, alertsRes] = await Promise.all([
-                fetch('/api/medicines'),
-                fetch('/api/alerts')
+                fetch('/api/medicines', { credentials: 'include', headers }),
+                fetch('/api/alerts', { credentials: 'include', headers })
             ]);
             
             if (medsRes.ok) {
@@ -87,7 +89,7 @@ export default function DashboardPage() {
 
     const fetchFamilyMembers = async () => {
         try {
-            const res = await fetch('/api/family-members');
+            const res = await fetch('/api/family-members', { credentials: 'include', headers: authHeaders() });
             if (res.ok) setFamilyMembers(await res.json());
         } catch (error) {
             console.error('Failed to fetch family members');

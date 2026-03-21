@@ -16,7 +16,7 @@ interface User {
 interface AuthContextType {
     user: User | null;
     loading: boolean;
-    login: (userData: User) => void;
+    login: (userData: User, token: string) => void;
     logout: () => void;
 }
 
@@ -24,8 +24,18 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Pages that require authentication
 const PROTECTED_PATHS = ['/dashboard', '/add-medicine', '/inventory', '/history', '/caretaker'];
-// Pages only for guests (logged in users should not see them)
-const GUEST_ONLY_PATHS = ['/login', '/register'];
+
+// Helper: get stored token
+export function getStoredToken(): string | null {
+    if (typeof window === 'undefined') return null;
+    return localStorage.getItem('token');
+}
+
+// Helper: build auth headers - use this in all API calls
+export function authHeaders(): HeadersInit {
+    const token = getStoredToken();
+    return token ? { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' };
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
@@ -36,8 +46,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     useEffect(() => {
         const checkUser = async () => {
             try {
+                const token = getStoredToken();
                 const res = await fetch('/api/auth/me', {
-                    credentials: 'include', // Ensure cookies are always sent
+                    credentials: 'include',
+                    headers: token ? { 'Authorization': `Bearer ${token}` } : {},
                 });
 
                 if (res.ok) {
@@ -45,32 +57,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     if (data?.user) {
                         setUser(data.user);
                     } else {
-                        setUser(null);
+                        clearAuth();
+                        redirectIfProtected();
                     }
                 } else {
-                    setUser(null);
-                    // If on a protected page and auth fails, redirect to login
-                    if (PROTECTED_PATHS.some(p => pathname?.startsWith(p))) {
-                        router.push('/login');
-                    }
+                    clearAuth();
+                    redirectIfProtected();
                 }
             } catch (error) {
                 console.error("Session check failed", error);
-                setUser(null);
-                // Redirect to login on network error if on protected page
-                if (PROTECTED_PATHS.some(p => pathname?.startsWith(p))) {
-                    router.push('/login');
-                }
+                clearAuth();
+                redirectIfProtected();
             } finally {
                 setLoading(false);
             }
         };
 
-        checkUser();
-    }, []);  // eslint-disable-line react-hooks/exhaustive-deps
+        const redirectIfProtected = () => {
+            if (PROTECTED_PATHS.some(p => pathname?.startsWith(p))) {
+                router.push('/login');
+            }
+        };
 
-    const login = (userData: User) => {
-        if (!userData) return;
+        checkUser();
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+    const clearAuth = () => {
+        setUser(null);
+        localStorage.removeItem('token');
+        localStorage.removeItem('neuramed_user');
+    };
+
+    const login = (userData: User, token: string) => {
+        if (!userData || !token) return;
+
+        // Store token in localStorage so it can be sent as Bearer header
+        localStorage.setItem('token', token);
+        localStorage.setItem('neuramed_user', JSON.stringify(userData));
         setUser(userData);
 
         // Redirect based on role
@@ -85,7 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const logout = async () => {
         try {
-            await fetch('/api/auth/logout', { 
+            await fetch('/api/auth/logout', {
                 method: 'POST',
                 credentials: 'include',
             });
@@ -93,7 +116,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             console.error("Logout failed", error);
         }
 
-        setUser(null);
+        clearAuth();
         router.push('/login');
     };
 

@@ -6,7 +6,17 @@ import Ngo from '@/models/Ngo';
 
 export async function GET(req: NextRequest) {
     try {
-        const token = req.cookies.get('token')?.value;
+        // Try Authorization header first (localStorage-based token for cross-origin)
+        let token: string | undefined;
+        const authHeader = req.headers.get('authorization');
+        if (authHeader?.startsWith('Bearer ')) {
+            token = authHeader.slice(7);
+        }
+
+        // Fall back to cookie
+        if (!token) {
+            token = req.cookies.get('token')?.value;
+        }
 
         if (!token) {
             return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
