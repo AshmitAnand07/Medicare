@@ -49,7 +49,7 @@ export default function InventoryPage() {
     useEffect(() => {
         let res = medicines;
         if (search) {
-            res = res.filter(m => m.name.toLowerCase().includes(search.toLowerCase()));
+            res = res.filter(m => m.name?.toLowerCase().includes(search.toLowerCase()));
         }
         if (familyFilter !== 'All') {
             res = res.filter(m => m.familyMember === familyFilter);

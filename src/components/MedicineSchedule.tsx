@@ -53,7 +53,8 @@ export default function MedicineSchedule({ medicines, onUpdate }: MedicineSchedu
     const upcomingMeds = medicines.filter(med => !med.isRefused);
     const refusedMeds = medicines.filter(med => med.isRefused);
 
-    const getTimeColorBase = (time: string) => {
+    const getTimeColorBase = (time?: string) => {
+        if (!time) return 'slate';
         const t = time.toLowerCase();
         if (t.includes('morning')) return 'amber';
         if (t.includes('afternoon')) return 'orange';

@@ -54,7 +54,7 @@ export default function CompareDonatePage() {
     useEffect(() => {
         if (formData.medicineName && showDropdown) {
             const filtered = medicines.filter(m =>
-                m.name.toLowerCase().includes(formData.medicineName.toLowerCase())
+                m.name?.toLowerCase().includes(formData.medicineName.toLowerCase())
             );
             setFilteredMedicines(filtered);
         } else {
