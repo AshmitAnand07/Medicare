@@ -11,6 +11,7 @@ export default function InventoryPage() {
     const [filteredMedicines, setFilteredMedicines] = useState<any[]>([]);
     const [search, setSearch] = useState('');
     const [familyFilter, setFamilyFilter] = useState('All');
+    const [familyMembers, setFamilyMembers] = useState<any[]>([]);
 
     const ngos = [
         { id: 1, name: "Seva Kutir Foundation" },
@@ -35,7 +36,22 @@ export default function InventoryPage() {
 
     useEffect(() => {
         fetchMedicines();
+        fetchFamilyMembers();
     }, [user]);
+
+    const fetchFamilyMembers = async () => {
+        if (user) {
+            try {
+                const res = await fetch('/api/family-members', { headers: authHeaders() });
+                if (res.ok) {
+                    const data = await res.json();
+                    setFamilyMembers(data);
+                }
+            } catch (err) {
+                console.error("Failed to fetch family members", err);
+            }
+        }
+    };
 
     const fetchMedicines = async () => {
         if (user) {
@@ -58,7 +74,10 @@ export default function InventoryPage() {
             res = res.filter(m => m.name?.toLowerCase().includes(search.toLowerCase()));
         }
         if (familyFilter !== 'All') {
-            res = res.filter(m => m.familyMember === familyFilter);
+            res = res.filter(m => {
+                if (familyFilter === 'Self') return m.familyMember === 'Self';
+                return m.familyMemberId === familyFilter || m.familyMember === familyFilter;
+            });
         }
         // ONLY SHOW MEDICINES WITH REMAINING QUANTITY > 0
         res = res.filter(m => {
@@ -193,11 +212,10 @@ export default function InventoryPage() {
                         onChange={e => setFamilyFilter(e.target.value)}
                     >
                         <option value="All">All Members</option>
-                        <option value="Self">Self</option>
-                        <option value="Father">Father</option>
-                        <option value="Mother">Mother</option>
-                        <option value="Child">Child</option>
-                        <option value="Grandparent">Grandparent</option>
+                        <option value="Self">Me (Self)</option>
+                        {familyMembers.map(fm => (
+                            <option key={fm._id} value={fm._id}>{fm.name}</option>
+                        ))}
                     </select>
                 </div>
             </div>

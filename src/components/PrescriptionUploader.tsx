@@ -6,9 +6,15 @@ import { authHeaders } from '@/context/AuthContext';
 
 interface PrescriptionUploaderProps {
   onUploadSuccess?: (medicines: any[]) => void;
+  familyMember?: string;
+  familyMemberId?: string;
 }
 
-const PrescriptionUploader: React.FC<PrescriptionUploaderProps> = ({ onUploadSuccess }) => {
+const PrescriptionUploader: React.FC<PrescriptionUploaderProps> = ({ 
+  onUploadSuccess, 
+  familyMember = 'Self', 
+  familyMemberId = '' 
+}) => {
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -39,6 +45,8 @@ const PrescriptionUploader: React.FC<PrescriptionUploaderProps> = ({ onUploadSuc
 
     const formData = new FormData();
     formData.append('image', selectedImage);
+    formData.append('familyMember', familyMember);
+    formData.append('familyMemberId', familyMemberId);
 
     try {
       const headers = new Headers(authHeaders());

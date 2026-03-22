@@ -25,6 +25,9 @@ export async function POST(req: NextRequest) {
 
         const formData = await req.formData();
         const image = formData.get('image') as File;
+        const familyMember = (formData.get('familyMember') as string) || 'Self';
+        const familyMemberId = (formData.get('familyMemberId') as string) || '';
+
         if (!image) {
             return NextResponse.json({ error: 'No image provided' }, { status: 400 });
         }
@@ -81,8 +84,7 @@ export async function POST(req: NextRequest) {
         }
 
         await connectToDatabase();
-
-        const savedMedicines = [];
+        const savedMedicines: any[] = [];
 
         for (const med of extractedMedicines) {
             if (!med.medicine) continue;
@@ -94,7 +96,8 @@ export async function POST(req: NextRequest) {
                 time: med.time || '',
                 frequency: med.frequency || '',
                 status: 'safe',
-                familyMember: 'Self',
+                familyMember: familyMember,
+                familyMemberId: familyMemberId ? familyMemberId : undefined,
                 expiryDate: new Date(new Date().setFullYear(new Date().getFullYear() + 1)), // default to 1 yr expiry
                 quantityStrips: 1,
             });

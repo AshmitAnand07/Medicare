@@ -127,9 +127,13 @@ export default function AddMedicinePage() {
                     {/* Prescription Uploader Component */}
                     <div className="mb-10">
                          <h3 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em] mb-4 ml-1">AI Smart Upload</h3>
-                         <PrescriptionUploader onUploadSuccess={() => {
-                            setTimeout(() => router.push('/dashboard'), 2000);
-                        }} />
+                         <PrescriptionUploader 
+                            familyMember={formData.familyMember}
+                            familyMemberId={formData.familyMemberId}
+                            onUploadSuccess={() => {
+                                setTimeout(() => router.push('/dashboard'), 2000);
+                            }} 
+                         />
                     </div>
 
                     <div className="relative flex items-center py-8">
