@@ -6,8 +6,17 @@ import { cookies } from 'next/headers';
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     try {
+        let token: string | undefined;
         const cookieStore = await cookies();
-        const token = cookieStore.get('token')?.value;
+        token = cookieStore.get('token')?.value;
+
+        if (!token) {
+            const authHeader = req.headers.get('authorization');
+            if (authHeader?.startsWith('Bearer ')) {
+                token = authHeader.slice(7);
+            }
+        }
+
         const decoded = token ? await verifyJWT(token) as any : null;
 
         if (!decoded) {
@@ -47,8 +56,17 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     try {
+        let token: string | undefined;
         const cookieStore = await cookies();
-        const token = cookieStore.get('token')?.value;
+        token = cookieStore.get('token')?.value;
+
+        if (!token) {
+            const authHeader = req.headers.get('authorization');
+            if (authHeader?.startsWith('Bearer ')) {
+                token = authHeader.slice(7);
+            }
+        }
+
         const decoded = token ? await verifyJWT(token) as any : null;
 
         if (!decoded) {

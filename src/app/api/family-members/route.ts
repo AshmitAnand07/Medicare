@@ -4,10 +4,19 @@ import FamilyMember from '@/models/FamilyMember';
 import { verifyJWT } from '@/lib/auth';
 import { cookies } from 'next/headers';
 
-export async function GET() {
+export async function GET(req: Request) {
     try {
+        let token: string | undefined;
         const cookieStore = await cookies();
-        const token = cookieStore.get('token')?.value;
+        token = cookieStore.get('token')?.value;
+
+        if (!token) {
+            const authHeader = req.headers.get('authorization');
+            if (authHeader?.startsWith('Bearer ')) {
+                token = authHeader.slice(7);
+            }
+        }
+
         const decoded = token ? await verifyJWT(token) as any : null;
 
         if (!decoded) {
@@ -32,8 +41,17 @@ export async function GET() {
 
 export async function POST(req: Request) {
     try {
+        let token: string | undefined;
         const cookieStore = await cookies();
-        const token = cookieStore.get('token')?.value;
+        token = cookieStore.get('token')?.value;
+
+        if (!token) {
+            const authHeader = req.headers.get('authorization');
+            if (authHeader?.startsWith('Bearer ')) {
+                token = authHeader.slice(7);
+            }
+        }
+
         const decoded = token ? await verifyJWT(token) as any : null;
 
         if (!decoded) {

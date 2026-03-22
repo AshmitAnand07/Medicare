@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { X, User, Settings, Users, LogOut, Mail, Phone, Calendar, Shield, Plus, Loader2 } from 'lucide-react';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth, authHeaders } from '@/context/AuthContext';
 import FamilyMemberCard from './FamilyMemberCard';
 import AddFamilyMemberModal from './AddFamilyMemberModal';
 
@@ -27,7 +27,9 @@ export default function ProfilePanel({ isOpen, onClose }: Props) {
     const fetchFamilyMembers = async () => {
         setLoading(true);
         try {
-            const res = await fetch('/api/family-members');
+            const res = await fetch('/api/family-members', {
+                headers: authHeaders()
+            });
             if (res.ok) {
                 const data = await res.json();
                 setFamilyMembers(data);
@@ -43,7 +45,10 @@ export default function ProfilePanel({ isOpen, onClose }: Props) {
         try {
             const res = await fetch('/api/family-members', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    ...authHeaders()
+                },
                 body: JSON.stringify(formData)
             });
             if (res.ok) {
@@ -58,7 +63,10 @@ export default function ProfilePanel({ isOpen, onClose }: Props) {
         try {
             const res = await fetch(`/api/family-members/${id}`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    ...authHeaders()
+                },
                 body: JSON.stringify(formData)
             });
             if (res.ok) {
@@ -76,7 +84,8 @@ export default function ProfilePanel({ isOpen, onClose }: Props) {
 
         try {
             const res = await fetch(`/api/family-members/${id}`, {
-                method: 'DELETE'
+                method: 'DELETE',
+                headers: authHeaders()
             });
             if (res.ok) {
                 fetchFamilyMembers();
